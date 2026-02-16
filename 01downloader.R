@@ -34,32 +34,32 @@ all_codes <- getHMDcountries()
 # ------------------------------------------------------------------------------
 # Helper function to download e0 data for a single country
 fetch_life_table_metric <- function(code) {
- cat("Adatok feldolgozása:", code, "...\n")
+ cat("Processing data:", code, "...\n")
  
  tryCatch({
-  # A) NŐK letöltése (fltper = Female Life Table)
+  # A) Downloading FEMALES (fltper = Female Life Table)
   dt_f <- setDT(readHMDweb(code, "fltper_1x1", user_email, user_pass))
-  val_f <- dt_f[, .(Year, Age, ex, qx, mx)] # Itt választhatsz: 'ex', 'qx', 'mx'
-  setnames(val_f, "ex", "F") # Átnevezzük egyszerűen "F"-re
-  setnames(val_f, "qx", "Fq") # Átnevezzük egyszerűen "F"-re
-  setnames(val_f, "mx", "Fm") # Átnevezzük egyszerűen "F"-re
+  val_f <- dt_f[, .(Year, Age, ex, qx, mx)] # Here you can choose: 'ex', 'qx', 'mx'
+  setnames(val_f, "ex", "F")  # Rename simply to "F"
+  setnames(val_f, "qx", "Fq") # Rename simply to "Fq"
+  setnames(val_f, "mx", "Fm") # Rename simply to "Fm"
   
-  # B) FÉRFIAK letöltése (mltper = Male Life Table)
+  # B) Downloading MALES (mltper = Male Life Table)
   dt_m <- setDT(readHMDweb(code, "mltper_1x1", user_email, user_pass))
   val_m <- dt_m[, .(Year, Age, ex, qx, mx)]
-  setnames(val_m, "ex", "M") # Átnevezzük egyszerűen "M"-re
-  setnames(val_m, "qx", "Mq") # Átnevezzük egyszerűen "F"-re
-  setnames(val_m, "mx", "Mm") # Átnevezzük egyszerűen "F"-re
+  setnames(val_m, "ex", "M")  # Rename simply to "M"
+  setnames(val_m, "qx", "Mq") # Rename simply to "Mq"
+  setnames(val_m, "mx", "Mm") # Rename simply to "Mm"
   
-  # C) ÖSSZEFÉSÜLÉS (MERGE)
-  # Év alapján összefűzzük a kettőt
+  # C) COMBINING (MERGE)
+  # Merge the two based on Year (and Age)
   merged <- merge(val_f, val_m, by = c("Year","Age"), all = TRUE)
   merged[, Country := code]
   
   return(merged)
   
  }, error = function(e) {
-  warning(paste("Hiba vagy hiányzó adat:", code))
+  warning(paste("Error or missing data:", code))
   return(NULL)
  })
 }
