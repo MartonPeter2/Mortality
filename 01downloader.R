@@ -34,32 +34,32 @@ all_codes <- getHMDcountries()
 # ------------------------------------------------------------------------------
 # Helper function to download e0 data for a single country
 fetch_life_table_metric <- function(code) {
- cat("Processing data:", code, "...\n")
+ cat("Adatok feldolgozása:", code, "...\n")
  
  tryCatch({
-  # A) Downloading FEMALES (fltper = Female Life Table)
+  # A) NŐK letöltése (fltper = Female Life Table)
   dt_f <- setDT(readHMDweb(code, "fltper_1x1", user_email, user_pass))
-  val_f <- dt_f[, .(Year, Age, ex, qx, mx)] # Here you can choose: 'ex', 'qx', 'mx'
-  setnames(val_f, "ex", "F")  # Rename simply to "F"
-  setnames(val_f, "qx", "Fq") # Rename simply to "Fq"
-  setnames(val_f, "mx", "Fm") # Rename simply to "Fm"
+  val_f <- dt_f[, .(Year, Age, ex, qx, mx)] # Itt választhatsz: 'ex', 'qx', 'mx'
+  setnames(val_f, "ex", "F") # Átnevezzük egyszerűen "F"-re
+  setnames(val_f, "qx", "Fq") # Átnevezzük egyszerűen "F"-re
+  setnames(val_f, "mx", "Fm") # Átnevezzük egyszerűen "F"-re
   
-  # B) Downloading MALES (mltper = Male Life Table)
+  # B) FÉRFIAK letöltése (mltper = Male Life Table)
   dt_m <- setDT(readHMDweb(code, "mltper_1x1", user_email, user_pass))
   val_m <- dt_m[, .(Year, Age, ex, qx, mx)]
-  setnames(val_m, "ex", "M")  # Rename simply to "M"
-  setnames(val_m, "qx", "Mq") # Rename simply to "Mq"
-  setnames(val_m, "mx", "Mm") # Rename simply to "Mm"
+  setnames(val_m, "ex", "M") # Átnevezzük egyszerűen "M"-re
+  setnames(val_m, "qx", "Mq") # Átnevezzük egyszerűen "F"-re
+  setnames(val_m, "mx", "Mm") # Átnevezzük egyszerűen "F"-re
   
-  # C) COMBINING (MERGE)
-  # Merge the two based on Year (and Age)
+  # C) ÖSSZEFÉSÜLÉS (MERGE)
+  # Év alapján összefűzzük a kettőt
   merged <- merge(val_f, val_m, by = c("Year","Age"), all = TRUE)
   merged[, Country := code]
   
   return(merged)
   
  }, error = function(e) {
-  warning(paste("Error or missing data:", code))
+  warning(paste("Hiba vagy hiányzó adat:", code))
   return(NULL)
  })
 }
@@ -96,3 +96,7 @@ long_dt <- melt(full_dt,
 y70 <- long_dt[Age==0&70<=e0&e0<71]#259
 y75 <- long_dt[Age==0&75<=e0&e0<76]#366
 y80 <- long_dt[Age==0&80<=e0&e0<81]#303
+# fwrite(y70,"C:/C/Mortality/mortality_database_y70.tsv",sep="\t",dec=",")
+# fwrite(y75,"C:/C/Mortality/mortality_database_y75.tsv",sep="\t",dec=",")
+# fwrite(y80,"C:/C/Mortality/mortality_database_y80.tsv",sep="\t",dec=",")
+# fwrite(long_dt[Age == 0 & ((70 <= e0 & e0 < 71) | (75 <= e0 & e0 < 76) | (80 <= e0 & e0 < 81)), .N, by = Country][order(Country)],"C:/C/Mortality/orszagok.tsv",sep="\t",dec=",")
