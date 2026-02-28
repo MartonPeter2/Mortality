@@ -8,9 +8,9 @@
 # ------------------------------------------------------------------------------
 if (!require("pacman")) install.packages("pacman")
 pacman::p_load(
- data.table,   # High-performance data manipulation
- HMDHFDplus,   # Interface to Human Mortality Database
- rstudioapi    # Secure password entry
+  data.table,   # High-performance data manipulation
+  HMDHFDplus,   # Interface to Human Mortality Database
+  rstudioapi    # Secure password entry
 )
 
 # 2. AUTHENTICATION
@@ -34,34 +34,34 @@ all_codes <- getHMDcountries()
 # ------------------------------------------------------------------------------
 # Helper function to download e0 data for a single country
 fetch_life_table_metric <- function(code) {
- cat("Adatok feldolgozása:", code, "...\n")
- 
- tryCatch({
-  # A) NŐK letöltése (fltper = Female Life Table)
-  dt_f <- setDT(readHMDweb(code, "fltper_1x1", user_email, user_pass))
-  val_f <- dt_f[, .(Year, Age, ex, qx, mx)] # Itt választhatsz: 'ex', 'qx', 'mx'
-  setnames(val_f, "ex", "F") # Átnevezzük egyszerűen "F"-re
-  setnames(val_f, "qx", "Fq") # Átnevezzük egyszerűen "F"-re
-  setnames(val_f, "mx", "Fm") # Átnevezzük egyszerűen "F"-re
+  cat("Processing data for:", code, "...\n")
   
-  # B) FÉRFIAK letöltése (mltper = Male Life Table)
-  dt_m <- setDT(readHMDweb(code, "mltper_1x1", user_email, user_pass))
-  val_m <- dt_m[, .(Year, Age, ex, qx, mx)]
-  setnames(val_m, "ex", "M") # Átnevezzük egyszerűen "M"-re
-  setnames(val_m, "qx", "Mq") # Átnevezzük egyszerűen "F"-re
-  setnames(val_m, "mx", "Mm") # Átnevezzük egyszerűen "F"-re
-  
-  # C) ÖSSZEFÉSÜLÉS (MERGE)
-  # Év alapján összefűzzük a kettőt
-  merged <- merge(val_f, val_m, by = c("Year","Age"), all = TRUE)
-  merged[, Country := code]
-  
-  return(merged)
-  
- }, error = function(e) {
-  warning(paste("Hiba vagy hiányzó adat:", code))
-  return(NULL)
- })
+  tryCatch({
+    # A) Download FEMALE data (fltper = Female Life Table)
+    dt_f <- setDT(readHMDweb(code, "fltper_1x1", user_email, user_pass))
+    val_f <- dt_f[, .(Year, Age, ex, qx, mx)] # You can choose: 'ex', 'qx', 'mx'
+    setnames(val_f, "ex", "F")  # Rename simply to "F"
+    setnames(val_f, "qx", "Fq") # Rename simply to "Fq"
+    setnames(val_f, "mx", "Fm") # Rename simply to "Fm"
+    
+    # B) Download MALE data (mltper = Male Life Table)
+    dt_m <- setDT(readHMDweb(code, "mltper_1x1", user_email, user_pass))
+    val_m <- dt_m[, .(Year, Age, ex, qx, mx)]
+    setnames(val_m, "ex", "M")  # Rename simply to "M"
+    setnames(val_m, "qx", "Mq") # Rename simply to "Mq"
+    setnames(val_m, "mx", "Mm") # Rename simply to "Mm"
+    
+    # C) MERGE
+    # Merge the two tables based on Year and Age
+    merged <- merge(val_f, val_m, by = c("Year","Age"), all = TRUE)
+    merged[, Country := code]
+    
+    return(merged)
+    
+  }, error = function(e) {
+    warning(paste("Error or missing data for:", code))
+    return(NULL)
+  })
 }
 
 # 5. BATCH DOWNLOAD
@@ -71,9 +71,9 @@ fetch_life_table_metric <- function(code) {
 data_list <- lapply(all_codes$CNTRY, fetch_life_table_metric)
 
 # # Manual correction
- # missing_countries <- c("KOR")
- # data_list <- c(data_list,lapply(missing_countries, fetch_life_table_metric))
-#data_list[[which(all_codes$CNTRY == "KOR")]] <- fetch_life_table_metric("KOR")
+# missing_countries <- c("KOR")
+# data_list <- c(data_list, lapply(missing_countries, fetch_life_table_metric))
+# data_list[[which(all_codes$CNTRY == "KOR")]] <- fetch_life_table_metric("KOR")
 
 # Combine all list elements into one single data.table
 full_dt <- rbindlist(data_list, use.names = TRUE, fill = TRUE)
@@ -83,6 +83,7 @@ full_dt <- rbindlist(data_list, use.names = TRUE, fill = TRUE)
 # setdiff(all_codes$CNTRY,(full_dt[,Country]))
 # fwrite(full_dt,"C:/C/Mortality/mortality_database.tsv",sep="\t",dec=",")
 # full_dt<-fread("C:/C/Mortality/mortality_database.tsv",sep="\t",dec=",")
+
 # 6. DATA TRANSFORMATION (PIVOT)
 # ------------------------------------------------------------------------------
 
@@ -93,10 +94,13 @@ long_dt <- melt(full_dt,
                 variable.name = "Sex", 
                 value.name = "e0")
 
-y70 <- long_dt[Age==0&70<=e0&e0<71]#259
-y75 <- long_dt[Age==0&75<=e0&e0<76]#366
-y80 <- long_dt[Age==0&80<=e0&e0<81]#303
+y70 <- long_dt[Age==0 & 70<=e0 & e0<71] # 259 rows
+y75 <- long_dt[Age==0 & 75<=e0 & e0<76] # 366 rows
+y80 <- long_dt[Age==0 & 80<=e0 & e0<81] # 303 rows
+
 # fwrite(y70,"C:/C/Mortality/mortality_database_y70.tsv",sep="\t",dec=",")
 # fwrite(y75,"C:/C/Mortality/mortality_database_y75.tsv",sep="\t",dec=",")
 # fwrite(y80,"C:/C/Mortality/mortality_database_y80.tsv",sep="\t",dec=",")
-# fwrite(long_dt[Age == 0 & ((70 <= e0 & e0 < 71) | (75 <= e0 & e0 < 76) | (80 <= e0 & e0 < 81)), .N, by = Country][order(Country)],"C:/C/Mortality/orszagok.tsv",sep="\t",dec=",")
+
+# Export list of countries meeting specific e0 criteria
+# fwrite(long_dt[Age == 0 & ((70 <= e0 & e0 < 71) | (75 <= e0 & e0 < 76) | (80 <= e0 & e0 < 81)), .N, by = Country][order(Country)],"C:/C/Mortality/countries.tsv",sep="\t",dec=",")
